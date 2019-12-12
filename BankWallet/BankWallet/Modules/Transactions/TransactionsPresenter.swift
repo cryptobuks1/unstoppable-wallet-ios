@@ -6,17 +6,17 @@ class TransactionsPresenter {
     private let router: ITransactionsRouter
     private let factory: ITransactionViewItemFactory
     private let loader: TransactionsLoader
-    private let dataSource: TransactionsMetadataDataSource
+    private let metaDataSource: TransactionsMetadataDataSource
     private let viewItemLoader: ITransactionViewItemLoader
 
     weak var view: ITransactionsView?
 
-    init(interactor: ITransactionsInteractor, router: ITransactionsRouter, factory: ITransactionViewItemFactory, loader: TransactionsLoader, dataSource: TransactionsMetadataDataSource, viewItemLoader: ITransactionViewItemLoader) {
+    init(interactor: ITransactionsInteractor, router: ITransactionsRouter, factory: ITransactionViewItemFactory, loader: TransactionsLoader, metaDataSource: TransactionsMetadataDataSource, viewItemLoader: ITransactionViewItemLoader) {
         self.interactor = interactor
         self.router = router
         self.factory = factory
         self.loader = loader
-        self.dataSource = dataSource
+        self.metaDataSource = metaDataSource
         self.viewItemLoader = viewItemLoader
     }
 
@@ -25,9 +25,9 @@ class TransactionsPresenter {
 extension TransactionsPresenter: ITransactionViewItemLoaderDelegate {
 
     func createViewItem(for item: TransactionItem) -> TransactionViewItem {
-        let lastBlockHeight = dataSource.lastBlockHeight(wallet: item.wallet)
-        let threshold = dataSource.threshold(wallet: item.wallet)
-        let rate = dataSource.rate(coin: item.wallet.coin, date: item.record.date)
+        let lastBlockHeight = metaDataSource.lastBlockHeight(wallet: item.wallet)
+        let threshold = metaDataSource.threshold(wallet: item.wallet)
+        let rate = metaDataSource.rate(coin: item.wallet.coin, date: item.record.date)
         return factory.viewItem(fromItem: item, lastBlockHeight: lastBlockHeight, threshold: threshold, rate: rate)
     }
 
@@ -94,10 +94,10 @@ extension TransactionsPresenter: ITransactionsInteractorDelegate {
 
         for (wallet, threshold, lastBlockHeight) in walletsData {
             wallets.append(wallet)
-            dataSource.set(threshold: threshold, wallet: wallet)
+            metaDataSource.set(threshold: threshold, wallet: wallet)
 
             if let lastBlockHeight = lastBlockHeight {
-                dataSource.set(lastBlockHeight: lastBlockHeight, wallet: wallet)
+                metaDataSource.set(lastBlockHeight: lastBlockHeight, wallet: wallet)
             }
         }
 
@@ -114,16 +114,16 @@ extension TransactionsPresenter: ITransactionsInteractorDelegate {
     }
 
     func onUpdateBaseCurrency() {
-        dataSource.clearRates()
+        metaDataSource.clearRates()
         viewItemLoader.reloadAll()
     }
 
     func onUpdate(lastBlockHeight: Int, wallet: Wallet) {
-        let oldLastBlockHeight = dataSource.lastBlockHeight(wallet: wallet)
+        let oldLastBlockHeight = metaDataSource.lastBlockHeight(wallet: wallet)
 
-        dataSource.set(lastBlockHeight: lastBlockHeight, wallet: wallet)
+        metaDataSource.set(lastBlockHeight: lastBlockHeight, wallet: wallet)
 
-        if let threshold = dataSource.threshold(wallet: wallet), let oldLastBlockHeight = oldLastBlockHeight {
+        if let threshold = metaDataSource.threshold(wallet: wallet), let oldLastBlockHeight = oldLastBlockHeight {
             let indexes = loader.itemIndexesForPending(wallet: wallet, blockHeight: oldLastBlockHeight - threshold)
 
             if !indexes.isEmpty {
@@ -137,7 +137,7 @@ extension TransactionsPresenter: ITransactionsInteractorDelegate {
     }
 
     func didFetch(rateValue: Decimal, coin: Coin, currency: Currency, date: Date) {
-        dataSource.set(rate: CurrencyValue(currency: currency, value: rateValue), coin: coin, date: date)
+        metaDataSource.set(rate: CurrencyValue(currency: currency, value: rateValue), coin: coin, date: date)
 
         let indexes = loader.itemIndexes(coin: coin, date: date)
 
