@@ -43,12 +43,9 @@ extension TransactionViewItemLoader: ITransactionViewItemLoader {
                 }
             }
 
-            let viewChanges = differ.changes(old: state.viewItems ?? [], new: newViewItems)
             state.items = newItems
             state.viewItems = newViewItems
-            DispatchQueue.main.async { [weak self] in
-                self?.delegate?.reload(with: viewChanges, items: newViewItems, animated: animated)
-            }
+            self.delegate?.reload(with: newViewItems, animated: animated)
         }
     }
 
@@ -60,17 +57,14 @@ extension TransactionViewItemLoader: ITransactionViewItemLoader {
                     newViewItems.append(viewItem)
                 }
             }
-            let viewChanges = differ.changes(old: state.viewItems ?? [], new: newViewItems)
+
             state.viewItems = newViewItems
-            DispatchQueue.main.async { [weak self] in
-                self?.delegate?.reload(with: viewChanges, items: newViewItems, animated: false)
-            }
+            self.delegate?.reload(with: newViewItems, animated: false)
         }
     }
 
     func reload(indexes: [Int]) {
         var updatedViewItems = state.viewItems ?? []
-        let oldViewItems = state.viewItems ?? []
 
         queue.sync {
             for (index, item) in state.items.enumerated() {
@@ -79,11 +73,8 @@ extension TransactionViewItemLoader: ITransactionViewItemLoader {
                 }
             }
 
-            let changes = differ.changes(old: oldViewItems, new: updatedViewItems)
             state.viewItems = updatedViewItems
-            DispatchQueue.main.async { [weak self] in
-                self?.delegate?.reload(with: changes, items: updatedViewItems, animated: true)
-            }
+            self.delegate?.reload(with: updatedViewItems, animated: true)
         }
     }
 

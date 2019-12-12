@@ -23,7 +23,7 @@ extension TransactionStatus: Equatable {
 
 protocol ITransactionsView: class {
     func show(filters: [Wallet?])
-    func reload(with diff: [Change<TransactionViewItem>], items: [TransactionViewItem], animated: Bool)
+    func reload(with items: [TransactionViewItem], animated: Bool)
 }
 
 protocol ITransactionsViewDelegate {
@@ -83,7 +83,7 @@ protocol ITransactionViewItemLoader {
 
 protocol ITransactionViewItemLoaderDelegate: class {
     func createViewItem(for item: TransactionItem) -> TransactionViewItem
-    func reload(with diff: [Change<TransactionViewItem>], items: [TransactionViewItem], animated: Bool)
+    func reload(with: [TransactionViewItem], animated: Bool)
 }
 
 protocol IDiffer {

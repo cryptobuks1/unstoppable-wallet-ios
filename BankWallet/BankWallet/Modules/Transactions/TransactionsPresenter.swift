@@ -31,8 +31,8 @@ extension TransactionsPresenter: ITransactionViewItemLoaderDelegate {
         return factory.viewItem(fromItem: item, lastBlockHeight: lastBlockHeight, threshold: threshold, rate: rate)
     }
 
-    func reload(with diff: [Change<TransactionViewItem>], items: [TransactionViewItem], animated: Bool) {
-        view?.reload(with: diff, items: items, animated: animated)
+    func reload(with items: [TransactionViewItem], animated: Bool) {
+        view?.reload(with: items, animated: animated)
     }
 
 }

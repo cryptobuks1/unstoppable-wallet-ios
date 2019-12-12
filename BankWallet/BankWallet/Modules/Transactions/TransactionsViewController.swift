@@ -16,8 +16,12 @@ class TransactionsViewController: WalletViewController {
 
     private var items: [TransactionViewItem]?
 
-    init(delegate: ITransactionsViewDelegate) {
+    private let differ: IDiffer
+    private let queue = DispatchQueue(label: "io.horizontalsystems.unstoppable.transactions_view", qos: .userInitiated)
+
+    init(delegate: ITransactionsViewDelegate, differ: IDiffer) {
         self.delegate = delegate
+        self.differ = differ
 
         super.init()
 
@@ -82,6 +86,41 @@ class TransactionsViewController: WalletViewController {
         }
     }
 
+    private func handle(items: [TransactionViewItem], animated: Bool) {
+        let viewChanges = differ.changes(old: self.items ?? [], new: items)
+
+        if (self.items == nil) || !(isViewLoaded && view.window != nil) {
+            self.items = items
+
+            DispatchQueue.main.sync { [weak self] in
+                self?.tableView.reloadData()
+            }
+            return
+        }
+
+        self.items = items
+        let changes = IndexPathConverter().convert(changes: viewChanges, section: 0)
+
+        guard !changes.inserts.isEmpty || !changes.moves.isEmpty || !changes.deletes.isEmpty else {
+            DispatchQueue.main.sync { [weak self] in
+                self?.reload(indexPaths: changes.replaces)
+            }
+
+            return
+        }
+
+        DispatchQueue.main.sync { [weak self] in
+            self?.tableView.performBatchUpdates({ [weak self] in
+                self?.tableView.deleteRows(at: changes.deletes, with: animated ? .fade : .none)
+                self?.tableView.insertRows(at: changes.inserts, with: animated ? .fade : .none)
+                for movedIndex in changes.moves {
+                    self?.tableView.moveRow(at: movedIndex.from, to: movedIndex.to)
+                }
+            }, completion: { [weak self] _ in
+                    self?.reload(indexPaths: changes.replaces)
+            })
+        }
+    }
 }
 
 extension TransactionsViewController: ITransactionsView {
@@ -90,30 +129,10 @@ extension TransactionsViewController: ITransactionsView {
         filterHeaderView.reload(filters: filters)
     }
 
-    func reload(with diff: [Change<TransactionViewItem>], items: [TransactionViewItem], animated: Bool) {
-        if (self.items == nil) || !(isViewLoaded && view.window != nil) {
-            self.items = items
-            tableView.reloadData()
-            return
+    func reload(with items: [TransactionViewItem], animated: Bool) {
+        queue.async {
+            self.handle(items: items, animated: animated)
         }
-
-        self.items = items
-        let changes = IndexPathConverter().convert(changes: diff, section: 0)
-
-        guard !changes.inserts.isEmpty || !changes.moves.isEmpty || !changes.deletes.isEmpty else {
-            reload(indexPaths: changes.replaces)
-            return
-        }
-
-        tableView.performBatchUpdates({ [weak self] in
-            self?.tableView.deleteRows(at: changes.deletes, with: animated ? .fade : .none)
-            self?.tableView.insertRows(at: changes.inserts, with: animated ? .fade : .none)
-            for movedIndex in changes.moves {
-                self?.tableView.moveRow(at: movedIndex.from, to: movedIndex.to)
-            }
-        }, completion: { [weak self] _ in
-            self?.reload(indexPaths: changes.replaces)
-        })
     }
 
 }
